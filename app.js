@@ -5,6 +5,7 @@ const { errorHandler } = require("./middleware/error.middleware");
 const authRoutes = require("./routes/auth.routes");
 const userRoutes = require("./routes/user.routes");
 const orderRoutes = require("./routes/order.routes");
+const contactRoutes = require("./routes/contact.routes");
 
 const app = express();
 
@@ -21,6 +22,7 @@ app.get("/api/ping", async (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/contact", contactRoutes);
 
 // 错误处理中间件
 app.use(errorHandler);

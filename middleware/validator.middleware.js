@@ -1,6 +1,5 @@
 const { body, validationResult } = require('express-validator');
 
-// 统一的验证结果处理
 const validateResults = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -9,53 +8,46 @@ const validateResults = (req, res, next) => {
   next();
 };
 
-// 登录验证规则
+// 登录验证：phone + password
 exports.validateLogin = [
-  body('username')
+  body('phone')
     .trim()
-    .notEmpty().withMessage('用户名不能为空')
-    .isLength({ min: 3 }).withMessage('用户名至少3个字符'),
-  
+    .notEmpty().withMessage('手机号不能为空')
+    .isMobilePhone('zh-CN').withMessage('手机号格式不正确'),
   body('password')
     .trim()
     .notEmpty().withMessage('密码不能为空')
     .isLength({ min: 6 }).withMessage('密码至少6个字符'),
-    
   validateResults
 ];
 
-// 注册验证规则
+// 注册验证：phone + phoneCode + password
 exports.validateRegister = [
-  body('username')
+  body('phone')
     .trim()
-    .notEmpty().withMessage('用户名不能为空')
-    .isLength({ min: 3 }).withMessage('用户名至少3个字符')
-    .matches(/^[a-zA-Z0-9_]+$/).withMessage('用户名只能包含字母、数字和下划线'),
-  
+    .notEmpty().withMessage('手机号不能为空')
+    .isMobilePhone('zh-CN').withMessage('手机号格式不正确'),
+  body('phoneCode')
+    .trim()
+    .notEmpty().withMessage('验证码不能为空')
+    .isLength({ min: 4, max: 8 }).withMessage('验证码长度不正确')
+    .matches(/^\d+$/).withMessage('验证码必须是数字'),
   body('password')
     .trim()
     .notEmpty().withMessage('密码不能为空')
     .isLength({ min: 6 }).withMessage('密码至少6个字符')
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/).withMessage('密码必须包含大小写字母和数字'),
-  
-  body('email')
-    .trim()
-    .notEmpty().withMessage('邮箱不能为空')
-    .isEmail().withMessage('邮箱格式不正确'),
-    
   validateResults
 ];
 
-// 订单创建验证
-exports.validateCreateOrder = [
-  body('serviceId')
-    .notEmpty().withMessage('服务ID不能为空')
-    .isNumeric().withMessage('服务ID必须是数字'),
-    
-  body('duration')
-    .notEmpty().withMessage('购买时长不能为空')
-    .isNumeric().withMessage('购买时长必须是数字')
-    .isIn([1, 3, 6, 12]).withMessage('购买时长必须是1/3/6/12个月'),
-    
+// 发送验证码：phone + optional purpose
+exports.validateSendSms = [
+  body('phone')
+    .trim()
+    .notEmpty().withMessage('手机号不能为空')
+    .isMobilePhone('zh-CN').withMessage('手机号格式不正确'),
+  body('purpose')
+    .optional()
+    .isIn(['register', 'login', 'reset']).withMessage('purpose 取值无效'),
   validateResults
 ];

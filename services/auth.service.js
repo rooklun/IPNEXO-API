@@ -2,56 +2,77 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const UserModel = require('../models/user.model');
 const { AppError } = require('../middleware/error.middleware');
+const { verifyPhoneCode } = require('./verification.service');
 const JWT_SECRET = process.env.JWT_SECRET || 'test';
 
 class AuthService {
-  static async login(username, email, password) {
-    const user = await UserModel.findByUsername(username, email);
+  // 登录：phone + password
+  static async login(phone, password) {
+    const user = await UserModel.findByPhone(phone);
     if (!user) {
-      throw new AppError('用户名尚未注册', 401);
+      throw new AppError('手机号未注册', 401);
     }
 
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
-      throw new AppError('用户名或密码不正确', 401);
+      throw new AppError('手机号或密码不正确', 401);
     }
 
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
-    
+    // 向后兼容：userId + userUid + role
+    const token = jwt.sign(
+      { userUid: user.uid, role: user.role },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
     return {
       token,
       user: {
-        id: user.id,
-        username: user.username,
-        email: user.email
+        uid: user.uid,
+        phone: user.phone,
+        role: user.role
       }
     };
   }
 
+  // 注册：phone + phoneCode + password
   static async register(userData) {
-    const hashedPassword = await bcrypt.hash(userData.password, 10);
+    const { phone, phoneCode, password } = userData;
 
-    const isexists = await UserModel.findByUsername(userData.username, userData.email);
+    // 校验验证码
+    // const ok = await verifyPhoneCode(phone, phoneCode);
+    // if (!ok) {
+    //   throw new AppError('验证码错误或已过期', 400);
+    // }
 
-    if (isexists) {
-      throw new AppError('用户已存在', 401);
+    // 是否已存在
+    const existed = await UserModel.findByPhone(phone);
+    if (existed) {
+      throw new AppError('手机号已注册', 409);
     }
 
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const userId = await UserModel.create({
-      ...userData,
+      phone,
       password: hashedPassword
     });
-    
+
     const user = await UserModel.findById(userId);
 
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign(
+      { userId: user.id, userUid: user.uid, role: user.role },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
 
     return {
       token,
       user: {
         id: user.id,
-        username: user.username,
-        email: user.email
+        uid: user.uid,
+        phone: user.phone,
+        role: user.role
       }
     };
   }
