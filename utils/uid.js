@@ -6,3 +6,12 @@ function generateNumericUid() {
 }
 
 module.exports = { generateNumericUid };
+
+// 生成订单号：O + 秒级时间戳(10) + 6位随机数，例如 O1699100000XXXXXX
+function generateOrderNo() {
+  const sec = Math.floor(Date.now() / 1000).toString();
+  const rand = Math.floor(Math.random() * 1_000_000).toString().padStart(6, '0');
+  return `O${sec}${rand}`;
+}
+
+module.exports.generateOrderNo = generateOrderNo;
